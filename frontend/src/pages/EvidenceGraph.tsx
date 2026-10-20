@@ -17,6 +17,7 @@ import ExperimentPicker from '../components/qtrace/ExperimentPicker'
 import { LabelChip, StatusChip, keyLabel, pct } from '../components/qtrace/badges'
 import { useExperiment } from '../hooks/useExperiment'
 import { InvestigateAPI, type GraphNode, type Report, type ReportFinding } from '../services/qtrace'
+import { useRole } from '../hooks/useRole'
 import { useAppStore } from '../store/useAppStore'
 
 const SUPPORTED = new Set(['supported', 'upheld', 'revised'])
@@ -184,6 +185,7 @@ export default function EvidenceGraph() {
   const navigate = useNavigate()
   const id = useAppStore((s) => s.currentExperimentId)
   const exp = useExperiment(id)
+  const { can } = useRole()
   const ev = useQuery({ queryKey: ['evidence', id, exp.data?.run?.id], queryFn: () => InvestigateAPI.evidence(id!), enabled: !!id && exp.data?.status === 'completed' })
   const [view, setView] = useState<View>('graph')
   const [selected, setSelected] = useState<string | null>(null)
@@ -266,7 +268,7 @@ export default function EvidenceGraph() {
 
           {view === 'battery' && (
             <Card title="Challenge battery" icon={<Swords className="h-4 w-4" />} label="Top findings par automatic 7-check battery + user challenges"
-              actions={<Button variant="secondary" onClick={() => navigate('/challenge')}><Swords className="h-4 w-4" />Challenge a finding</Button>}>
+              actions={can.challenge && <Button variant="secondary" onClick={() => navigate('/challenge')}><Swords className="h-4 w-4" />Challenge a finding</Button>}>
               {battery.length === 0 && <p className="text-sm text-dim">Is run me koi challenge nahi chala.</p>}
               <div className="-mx-4 overflow-x-auto sm:-mx-5">
                 <table className="tbl">

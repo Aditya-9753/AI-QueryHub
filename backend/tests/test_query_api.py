@@ -109,3 +109,22 @@ def _analyst_headers(client):
     from app.core.security import create_access_token
 
     return {"Authorization": f"Bearer {create_access_token('dev', 'dev@local', 'analyst')}"}
+
+
+def test_trace_and_profile_in_response(client, fake_llm):
+    fake_llm(["```sql\nSELECT city, SUM(amount) AS revenue FROM orders GROUP BY city\n```", "Delhi 150, Pune 70."])
+    body = client.post("/api/query", json={"question": "city-wise revenue", "mode": "ANALYZE"}).json()
+    keys = [s["key"] for s in body["trace"]]
+    assert keys == ["context", "llm_sql", "firewall", "execute", "answer", "profile"]
+    fw = next(s for s in body["trace"] if s["key"] == "firewall")
+    assert len(fw["layers"]) == 4 and fw["tables"] == ["orders"] and "LIMIT 5000 injected" in fw["layers"][3]["detail"]
+    p = body["profile"]
+    assert p["shape"] == "breakdown" and p["stats"]["total"] == 220
+    top = next(i for i in p["insights"] if i["kind"] == "top")
+    assert top["values"]["label"] == "Delhi" and abs(top["values"]["share"] - 150 / 220) < 1e-9
+
+
+def test_manual_sql_trace_skips_llm(client):
+    body = client.post("/api/query", json={"question": "x", "sql": "SELECT COUNT(*) AS n FROM orders"}).json()
+    assert [s["key"] for s in body["trace"]] == ["firewall", "execute", "answer", "profile"]
+    assert body["profile"]["shape"] == "scalar"

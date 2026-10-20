@@ -92,6 +92,7 @@ export interface ExperimentFull {
   error: string | null
   datasource_id: string | null
   created_at: string
+  user_id?: string | null
   run: RunMeta | null
   report: Report | null
 }

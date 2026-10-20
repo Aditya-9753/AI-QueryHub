@@ -72,6 +72,8 @@ class QueryResponse(BaseModel):
     answer: str
     answer_source: Literal["llm", "template"]
     warnings: list[str] = []
+    trace: list[dict[str, Any]] = []          # pipeline stages + timings
+    profile: dict[str, Any] | None = None      # deterministic insights (analytics/result_profile.py)
 
 
 class HistoryOut(BaseModel):
@@ -165,6 +167,8 @@ class ExperimentOut(BaseModel):
     mode: str
     status: str
     created_at: datetime
+    user_id: str | None = None
+    owner: str | None = None
 
 
 class ReplayRequest(BaseModel):

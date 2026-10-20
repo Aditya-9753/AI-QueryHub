@@ -39,6 +39,37 @@ export interface QueryResult {
   answer: string
   answer_source: 'llm' | 'template'
   warnings: string[]
+  trace?: TraceStage[]
+  profile?: ResultProfile | null
+}
+
+/** Pipeline stage (backend ask.py trace) — key ke hisaab se extra fields. */
+export interface TraceStage {
+  key: 'context' | 'llm_sql' | 'firewall' | 'execute' | 'answer' | 'profile' | string
+  label: string
+  ms: number
+  [k: string]: unknown
+}
+
+export interface Insight {
+  kind: 'top' | 'concentration' | 'spread' | 'outlier' | 'trend' | 'peak' | 'move' | 'slope' | 'pattern' | 'value' | string
+  title: string
+  text: string
+  tone: 'accent' | 'ok' | 'bad' | 'warn' | 'neutral'
+  values: Record<string, unknown>
+}
+
+/** Deterministic result profile (backend analytics/result_profile.py) — har number result rows se. */
+export interface ResultProfile {
+  roles: Record<string, 'time' | 'dimension' | 'measure' | 'id'>
+  shape: 'scalar' | 'breakdown' | 'timeseries' | 'matrix' | 'table'
+  measure: string | null
+  dimension: string | null
+  format?: 'pct' | 'money' | 'number'
+  stats: { n: number; total: number | null; mean: number; min: number; max: number; additive: boolean } | null
+  insights: Insight[]
+  followups: { label: string; mode: Mode; question: string }[]
+  top_label?: string
 }
 
 export interface QueryErrorDetail {
@@ -117,6 +148,8 @@ export interface Experiment {
   mode: Mode
   status: string
   created_at: string
+  user_id?: string | null
+  owner?: string | null
 }
 
 export interface ExperimentDetail extends Experiment {

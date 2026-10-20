@@ -67,7 +67,8 @@ def repair_prompt(base_prompt: str, previous_sql: str, error: str) -> str:
 def answer_prompt(question: str, columns: list[str], rows: list[list]) -> str:
     return (
         "Answer the question in ONE short sentence, in the same language style as the question (Hinglish is fine). "
-        "Use only numbers present in the result; you may round them or express rupees in lakh/crore. "
+        "Use only numbers present in the result; round them for readability and write money as ₹ with lakh/crore "
+        "(e.g. ₹1.59 crore, ₹80.07 lakh) instead of long raw decimals. "
         "Do not compute new numbers (no percentages or differences that are not in the result). "
         "Reply with the sentence only.\n"
         f"Columns: <data>{json.dumps(columns)}</data>\n"

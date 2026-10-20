@@ -27,7 +27,7 @@ export default function App() {
         <Route path="/metrics" element={<SemanticLayer />} />
         <Route path="/investigate" element={<InvestigationWorkspace />} />
         <Route path="/evidence" element={<EvidenceGraph />} />
-        <Route path="/challenge" element={<ChallengeView />} />
+        <Route path="/challenge" element={<RequireRole roles={['admin', 'analyst']}><ChallengeView /></RequireRole>} />
         <Route path="/record" element={<ExperimentRecord />} />
         <Route path="/eval" element={<EvalDashboard />} />
         <Route path="/admin" element={<RequireRole roles={['admin']}><AdminSecurity /></RequireRole>} />

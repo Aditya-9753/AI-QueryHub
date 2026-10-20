@@ -1,7 +1,10 @@
 """Env settings (Ch 20.4). Root `.env` aur `backend/.env` dono padhe jaate hain."""
+import json
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -39,7 +42,8 @@ class Settings(BaseSettings):
     # Supabase Auth (optional): set ho to Supabase ke access tokens bhi accept hote hain
     supabase_url: str = ""                   # https://<project>.supabase.co  (ES256/RS256 -> JWKS)
     supabase_jwt_secret: str = ""            # legacy HS256 projects ke liye
-    cors_origins: list[str] = ["http://localhost:5173"]
+    # env me JSON list ya comma-separated: CORS_ORIGINS=https://a.onrender.com,http://localhost:5173
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
 
     # monitoring (Ch 2.5): Sentry free tier — DSN set ho to errors report hote hain
     sentry_dsn: str = ""
@@ -61,6 +65,26 @@ class Settings(BaseSettings):
     qtrace_max_queries: int = 40
     qtrace_explained_target: float = 0.80
     qtrace_fdr_q: float = 0.10
+
+    @field_validator("database_url", "readonly_database_url")
+    @classmethod
+    def _psycopg_driver(cls, v: str) -> str:
+        """Supabase/Render `postgresql://...` dete hain; SQLAlchemy uske liye psycopg2 dhoondhta hai jo install
+        nahi — isliye psycopg (v3) driver par map karo."""
+        for prefix in ("postgres://", "postgresql://"):
+            if v.startswith(prefix):
+                return "postgresql+psycopg://" + v[len(prefix):]
+        return v
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                return json.loads(v)
+            return [o.strip().rstrip("/") for o in v.split(",") if o.strip()]
+        return v
 
 
 @lru_cache

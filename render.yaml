@@ -1,0 +1,82 @@
+# Render Blueprint — AI QueryHub on the free tier (₹0).
+#   queryhub-api : FastAPI backend (Python runtime, no Docker)
+#   queryhub-web : React build served as a static site
+#
+# CD: autoDeployTrigger=checksPass → Render deploys a push to main only after the GitHub Actions CI
+# (.github/workflows/ci.yml: ruff + pytest + eval smoke + frontend build) passes.
+#
+# Data layout on Render:
+#   DATABASE_URL          → app tables (users, experiments, audit log). Use Supabase Postgres (free) so data
+#                           survives restarts; a SQLite path also works but resets on every deploy / spin-down.
+#   READONLY_DATABASE_URL → demo business data (orders, payments), rebuilt from seed_demo.py on every build
+#                           into a separate SQLite file and only ever opened read-only by the SQL firewall.
+# Step-by-step guide: docs/deploy-render.md
+
+services:
+  - type: web
+    name: queryhub-api
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: >-
+      pip install -r backend/requirements.txt &&
+      cd backend && python ../database/seed_data/seed_demo.py sqlite:///./demo.db
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - backend/**
+        - database/**
+        - render.yaml
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: ENVIRONMENT
+        value: production
+      - key: READONLY_DATABASE_URL
+        value: sqlite:///./demo.db
+      - key: JWT_SECRET
+        generateValue: true
+      # --- set in the Render dashboard (prompted on first Blueprint sync) ---
+      - key: DATABASE_URL            # Supabase "Session pooler" URI, or sqlite:///./queryhub.db for a throwaway demo
+        sync: false
+      - key: CORS_ORIGINS            # frontend URL, e.g. https://queryhub-web.onrender.com
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SUPABASE_URL            # optional: Supabase Auth / Google login
+        sync: false
+      - key: SENTRY_DSN              # optional: error monitoring
+        sync: false
+
+  - type: web
+    name: queryhub-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - frontend/**
+    routes:
+      - type: rewrite              # React Router: every path serves the SPA
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Vite bakes these in at build time — redeploy the site after changing them
+      - key: VITE_API_URL            # backend URL, e.g. https://queryhub-api.onrender.com
+        sync: false
+      - key: VITE_SUPABASE_URL       # optional
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY  # optional (public anon key, not the service key)
+        sync: false

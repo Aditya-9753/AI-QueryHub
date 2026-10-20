@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import models
-from app.core.security import CurrentUser, get_current_user
+from app.core.security import ANALYST_ROLES, CurrentUser, get_current_user, require_role
 from app.db.session import get_db
 from app.schemas.api import ExperimentOut, ReplayRequest
 from app.services.experiments import replay
@@ -25,10 +25,17 @@ class ExperimentIn(BaseModel):
     datasource_id: str | None = None
 
 
-def _get(db: Session, experiment_id: str, user: CurrentUser) -> models.Experiment:
+def can_read(exp: models.Experiment, user: CurrentUser) -> bool:
+    """Owner / admin sab dekhte hain; completed runs team library hain — har role padh sakta hai."""
+    return exp.user_id == user.id or user.role == "admin" or exp.status == "completed"
+
+
+def _get(db: Session, experiment_id: str, user: CurrentUser, write: bool = False) -> models.Experiment:
     exp = db.get(models.Experiment, experiment_id)
-    if exp is None or (exp.user_id != user.id and user.role != "admin"):
+    if exp is None or not can_read(exp, user):
         raise HTTPException(404, "experiment not found")
+    if write and exp.user_id != user.id and user.role != "admin":
+        raise HTTPException(403, "sirf owner ya admin is experiment ko chala / badal sakta hai")
     return exp
 
 
@@ -38,7 +45,8 @@ def _latest_run(db: Session, experiment_id: str) -> models.ExperimentRun | None:
 
 
 @router.post("", response_model=ExperimentOut)
-def create_experiment(body: ExperimentIn, user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_experiment(body: ExperimentIn, user: CurrentUser = Depends(require_role(*ANALYST_ROLES)),
+                      db: Session = Depends(get_db)):
     try:
         engine_for(db, body.datasource_id)
     except DataSourceError as e:
@@ -50,16 +58,25 @@ def create_experiment(body: ExperimentIn, user: CurrentUser = Depends(get_curren
 
 
 @router.get("", response_model=list[ExperimentOut])
-def list_experiments(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.scalars(select(models.Experiment).where(models.Experiment.user_id == user.id)
-                      .order_by(models.Experiment.created_at.desc()).limit(50)).all()
+def list_experiments(scope: str = "mine", user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    """scope=mine: apne runs · scope=team: sabke completed runs (viewer ke liye hamesha team)."""
+    q = (select(models.Experiment, models.User.name, models.User.email)
+         .join(models.User, models.User.id == models.Experiment.user_id, isouter=True))
+    if scope == "team" or user.role not in ANALYST_ROLES:
+        q = q.where(models.Experiment.status == "completed")
+    else:
+        q = q.where(models.Experiment.user_id == user.id)
+    rows = db.execute(q.order_by(models.Experiment.created_at.desc()).limit(50)).all()
+    return [ExperimentOut(id=e.id, question=e.question, mode=e.mode, status=e.status, created_at=e.created_at,
+                          user_id=e.user_id, owner=name or (email or "").split("@")[0] or None)
+            for e, name, email in rows]
 
 
 @router.post("/{experiment_id}/run", status_code=202)
-def run_experiment(experiment_id: str, sync: bool = False, user: CurrentUser = Depends(get_current_user),
+def run_experiment(experiment_id: str, sync: bool = False, user: CurrentUser = Depends(require_role(*ANALYST_ROLES)),
                    db: Session = Depends(get_db)):
     """sync=true: request me hi chalao (dev/tests). Warna Celery (Redis up ho) ya background thread."""
-    exp = _get(db, experiment_id, user)
+    exp = _get(db, experiment_id, user, write=True)
     if exp.status in ("queued", "running"):
         raise HTTPException(409, f"already {exp.status}")
     if sync:
@@ -103,7 +120,7 @@ def get_experiment(experiment_id: str, user: CurrentUser = Depends(get_current_u
     }
     return {"id": exp.id, "question": exp.question, "mode": exp.mode, "status": exp.status, "error": exp.error,
             **compact,
-            "datasource_id": exp.datasource_id, "created_at": exp.created_at,
+            "datasource_id": exp.datasource_id, "created_at": exp.created_at, "user_id": exp.user_id,
             "run": None if run is None else {
                 "id": run.id, "created_at": run.created_at, "replay_mode": run.replay_mode,
                 "dataset_version": run.dataset_version, "model_version": run.model_version,
@@ -168,9 +185,10 @@ def evidence(experiment_id: str, user: CurrentUser = Depends(get_current_user), 
 
 
 @router.post("/{experiment_id}/replay")
-def replay_experiment(experiment_id: str, body: ReplayRequest, user: CurrentUser = Depends(get_current_user),
-                      db: Session = Depends(get_db)):
-    exp = _get(db, experiment_id, user)
+def replay_experiment(experiment_id: str, body: ReplayRequest,
+                      user: CurrentUser = Depends(require_role(*ANALYST_ROLES)), db: Session = Depends(get_db)):
+    # exact replay = verification (koi bhi analyst kar sakta hai); re-derive naya run likhta hai -> owner/admin
+    exp = _get(db, experiment_id, user, write=body.mode != "exact")
     run = db.scalars(select(models.ExperimentRun).where(models.ExperimentRun.experiment_id == experiment_id,
                                                          models.ExperimentRun.replay_mode == "original")
                      .order_by(models.ExperimentRun.created_at.desc())).first()

@@ -1,8 +1,15 @@
 name: CI
 
+# CI: har push / PR par backend + frontend checks.
+# CD: Render (render.yaml, autoDeployTrigger: checksPass) main par tabhi deploy karta hai jab ye saare jobs pass hon.
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
@@ -27,6 +34,10 @@ jobs:
           python -m tests.eval_suite.safety
           python -c "import json; s=json.load(open('tests/eval_suite/results/safety_latest.json')); assert s['block_rate']==1.0, s['missed']"
           python -c "import json; b=json.load(open('tests/eval_suite/results/benchmark_latest.json'))['summary']; assert b['grounding_violations']==0 and b['false_alarm_rate'] in (0, 0.0, None), b"
+      - name: Render build smoke (demo data seed, same command as render.yaml)
+        run: |
+          python ../database/seed_data/seed_demo.py sqlite:///./demo.db
+          python -c "import sqlite3; n=sqlite3.connect('demo.db').execute('select count(*) from orders').fetchone()[0]; assert n > 100000, n; print('orders', n)"
 
   frontend:
     runs-on: ubuntu-latest

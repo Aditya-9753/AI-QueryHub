@@ -48,7 +48,7 @@ def run_saved(sq_id: str, user: CurrentUser = Depends(get_current_user), db: Ses
     sq = _own(db, user, sq_id)
     req = QueryRequest(question=sq.question, mode=sq.mode if sq.mode in ("ASK", "ANALYZE") else None,
                        sql=sq.sql, datasource_id=sq.datasource_id)
-    return execute_query(req, user, db, llm)
+    return execute_query(req, user, db, llm, allow_manual=True)
 
 
 @router.delete("/{sq_id}", status_code=204)

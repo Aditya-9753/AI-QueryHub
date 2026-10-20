@@ -13,12 +13,15 @@ import Timeline from '../components/qtrace/Timeline'
 import { StatusChip, keyLabel, pct } from '../components/qtrace/badges'
 import { useExperiment } from '../hooks/useExperiment'
 import { InvestigateAPI } from '../services/qtrace'
+import { useRole } from '../hooks/useRole'
 import { useAppStore } from '../store/useAppStore'
 import { errorMessage } from '../utils/format'
 
 export default function ExperimentRecord() {
   const id = useAppStore((s) => s.currentExperimentId)
   const { data } = useExperiment(id)
+  const { can, isAdmin, userId } = useRole()
+  const owns = isAdmin || (!!data?.user_id && data.user_id === userId)
   const [open, setOpen] = useState<string | null>(null)
   const replay = useMutation({ mutationFn: (mode: 'exact' | 'rederive') => InvestigateAPI.replay(id!, mode) })
   const exportF = useMutation({ mutationFn: (f: 'json' | 'pdf') => InvestigateAPI.exportFile(id!, f) })
@@ -35,8 +38,8 @@ export default function ExperimentRecord() {
         <div className="flex flex-col gap-4">
           <Card label={`EXP-${data.id.slice(0, 6).toUpperCase()}`} title={`“${data.question}”`} actions={
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => replay.mutate('exact')} disabled={replay.isPending || !data.run}><RotateCcw className="h-4 w-4" />Exact replay</Button>
-              <Button variant="secondary" onClick={() => replay.mutate('rederive')} disabled={replay.isPending || !data.run}><RefreshCcw className="h-4 w-4" />Re-derive</Button>
+              {can.replay && <Button variant="secondary" onClick={() => replay.mutate('exact')} disabled={replay.isPending || !data.run}><RotateCcw className="h-4 w-4" />Exact replay</Button>}
+              {can.replay && owns && <Button variant="secondary" onClick={() => replay.mutate('rederive')} disabled={replay.isPending || !data.run}><RefreshCcw className="h-4 w-4" />Re-derive</Button>}
               <Button variant="ghost" onClick={() => exportF.mutate('json')} disabled={!data.run}><Download className="h-4 w-4" />JSON</Button>
               <Button variant="ghost" onClick={() => exportF.mutate('pdf')} disabled={!data.run}><Download className="h-4 w-4" />PDF</Button>
             </div>}>

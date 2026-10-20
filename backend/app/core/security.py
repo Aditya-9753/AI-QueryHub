@@ -155,6 +155,12 @@ def get_current_user(creds: HTTPAuthorizationCredentials | None = Depends(_beare
     return CurrentUser(id=user.id, email=user.email, role=user.role)
 
 
+# Analyst vs viewer (product tiers, backend par enforced):
+#   viewer  = report consumer: NL Ask/Analyze (semantic tables), team investigations padhna + export
+#   analyst = investigator: manual SQL, investigations chalana, challenge, replay / re-derive
+ANALYST_ROLES = ("admin", "analyst")
+
+
 def require_role(*roles: str):
     def dependency(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
         if user.role not in roles:

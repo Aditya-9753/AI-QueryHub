@@ -12,7 +12,8 @@ sys.path.insert(0, str(BACKEND))
 import numpy as np  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
-from app.db.session import engine  # noqa: E402
+from app.core.config import Settings  # noqa: E402
+from app.db.session import engine, make_engine  # noqa: E402
 from tests.eval_suite.generator import base_daily, expand_to_orders, plant  # noqa: E402
 
 DDL = [
@@ -58,8 +59,11 @@ def build(target_engine, start: str = "2025-01-01", end: str = "2026-02-28", fac
 
 
 def main() -> None:
-    n_orders, n_payments = build(engine)
-    print(f"seeded {n_orders:,} orders and {n_payments:,} payments into {engine.url}")
+    """`python seed_demo.py [DB_URL]` — URL na do to DATABASE_URL. Deploy (Render) par demo data alag read-only
+    SQLite file me jaata hai: `python seed_demo.py sqlite:///./demo.db`."""
+    target = make_engine(Settings(database_url=sys.argv[1]).database_url) if len(sys.argv) > 1 else engine
+    n_orders, n_payments = build(target)
+    print(f"seeded {n_orders:,} orders and {n_payments:,} payments into {target.url.render_as_string(hide_password=True)}")
 
 
 if __name__ == "__main__":

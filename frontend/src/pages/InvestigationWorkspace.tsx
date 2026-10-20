@@ -21,6 +21,7 @@ import { useExperiment } from '../hooks/useExperiment'
 import { DataSourceAPI } from '../services/api'
 import { InvestigateAPI, type Report, type ReportFinding, type WaterfallData } from '../services/qtrace'
 import type { WaterfallStep } from '../services/types'
+import { useRole } from '../hooks/useRole'
 import { useAppStore } from '../store/useAppStore'
 import { errorMessage } from '../utils/format'
 
@@ -133,6 +134,8 @@ export default function InvestigationWorkspace() {
   const navigate = useNavigate()
   const id = useAppStore((s) => s.currentExperimentId)
   const exp = useExperiment(id)
+  const { can, isAdmin, userId, info } = useRole()
+  const owns = isAdmin || (!!exp.data?.user_id && exp.data.user_id === userId)
   const [bridgeTab, setBridgeTab] = useState<'bridge' | 'mix'>('bridge')
   const report = exp.data?.report
   const running = !!exp.data && ['queued', 'running'].includes(exp.data.status)
@@ -158,7 +161,15 @@ export default function InvestigationWorkspace() {
         <div className="label">Workspace / Investigate · Q-TRACE+</div>
         <ExperimentPicker />
       </div>
-      <Launcher />
+      {can.investigate ? <Launcher /> : (
+        <div className="flex items-start gap-3 rounded-lg border border-line bg-panel p-3 text-sm">
+          <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-dim" />
+          <div>
+            <div className="font-medium text-ink">{info.label} · team library</div>
+            <p className="text-muted">Analysts ki completed investigations yahan padh sakte ho: findings, evidence aur claims, sab read-only. Naya “kyun?” investigation analyst chalate hain.</p>
+          </div>
+        </div>
+      )}
 
       {!id && <Empty icon={<FlaskConical className="h-8 w-8" />} title="Koi investigation select nahi">Upar “kyun?” wala sawaal poochho ya purana experiment chuno.</Empty>}
 
@@ -267,7 +278,7 @@ export default function InvestigationWorkspace() {
               actions={<Badge tone={report.grounding.violations ? 'red' : 'blue'}>{report.grounding.violations ? `${report.grounding.violations} ungrounded` : '100% numbers grounded'}</Badge>}>
               <ClaimsList claims={report.claims} onSelect={() => navigate('/evidence')} />
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button onClick={() => navigate('/challenge')}><Swords className="h-4 w-4" />Launch counter-challenge</Button>
+                {can.challenge && owns && <Button onClick={() => navigate('/challenge')}><Swords className="h-4 w-4" />Launch counter-challenge</Button>}
                 <Button variant="secondary" onClick={() => navigate('/evidence')}><GitBranch className="h-4 w-4" />View evidence graph</Button>
                 <Button variant="secondary" onClick={() => exportJson.mutate()}><Download className="h-4 w-4" />Export (.json)</Button>
               </div>
@@ -281,6 +292,7 @@ export default function InvestigationWorkspace() {
                   <div className="flex justify-between py-2"><dt className="text-muted">Narrative source</dt><dd className="font-mono text-xs text-ink">{report.grounding.source}</dd></div>
                   <div className="flex items-center justify-between py-2"><dt className="text-muted">Deterministic replay</dt>
                     <dd>{replay.data ? <Badge tone={replay.data.match ? 'green' : 'red'}>{replay.data.matched}/{replay.data.queries} match</Badge>
+                      : !can.replay ? <span className="font-mono text-[11px] text-dim">analyst only</span>
                       : <button onClick={() => replay.mutate()} disabled={replay.isPending} className="font-mono text-[11px] text-accent hover:underline">{replay.isPending ? 'running…' : 'run exact replay'}</button>}</dd></div>
                 </dl>
                 <div className="label mb-2 mt-3">Query lineage</div>

@@ -39,3 +39,16 @@ export const errorMessage = (e: unknown): string => {
   if (obj) return obj.message
   return (e as AxiosLike)?.message ?? 'Unknown error'
 }
+
+/** Measure value ko uske format ke hisaab se: money → ₹ Cr / L, pct (0..1) → %, number → en-IN compact. */
+export function fmtMeasure(v: number | null | undefined, format?: 'pct' | 'money' | 'number', compact = true): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—'
+  if (format === 'pct') return `${(v * 100).toFixed(1)}%`
+  if (format === 'money') {
+    const a = Math.abs(v)
+    if (a >= 1e7) return `₹${(v / 1e7).toFixed(2)} Cr`
+    if (a >= 1e5) return `₹${(v / 1e5).toFixed(2)} L`
+    return `₹${NUM.format(Math.round(v))}`
+  }
+  return compact && Math.abs(v) >= 1e4 ? COMPACT.format(v) : NUM.format(v)
+}

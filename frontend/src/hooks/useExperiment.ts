@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ExperimentAPI } from '../services/api'
 import { InvestigateAPI } from '../services/qtrace'
+import { useRole } from './useRole'
 
 /** Experiment + latest report; queued/running ho to 1.5s par poll. */
 export function useExperiment(id: string | null) {
@@ -12,6 +13,9 @@ export function useExperiment(id: string | null) {
   })
 }
 
-export function useExperiments() {
-  return useQuery({ queryKey: ['experiments'], queryFn: ExperimentAPI.list })
+/** scope: mine = apne runs, team = sabke completed runs (team library). Viewer ke liye hamesha team. */
+export function useExperiments(scope?: 'mine' | 'team') {
+  const { can } = useRole()
+  const s = !can.investigate ? 'team' : scope ?? 'mine'
+  return useQuery({ queryKey: ['experiments', s], queryFn: () => ExperimentAPI.list(s) })
 }

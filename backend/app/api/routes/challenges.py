@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import models
-from app.core.security import CurrentUser, get_current_user
+from app.api.routes.experiments import can_read
+from app.core.security import ANALYST_ROLES, CurrentUser, get_current_user, require_role
 from app.db.session import get_db
 from app.schemas.api import ChallengeCreate, ChallengeOut
 from app.schemas.qtrace import SUPPORTED_LIKE, Hypothesis
@@ -33,7 +34,7 @@ def _pipeline_for(db: Session, finding: models.Finding, user: CurrentUser):
 
 
 @router.post("/challenges", response_model=ChallengeOut)
-def create_challenge(body: ChallengeCreate, user: CurrentUser = Depends(get_current_user),
+def create_challenge(body: ChallengeCreate, user: CurrentUser = Depends(require_role(*ANALYST_ROLES)),
                      db: Session = Depends(get_db)):
     finding = db.get(models.Finding, body.finding_id)
     if finding is None:
@@ -80,7 +81,7 @@ def list_challenges(finding_id: str, db: Session = Depends(get_db)):
 @router.get("/experiments/{experiment_id}/findings")
 def findings_of(experiment_id: str, user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
     exp = db.get(models.Experiment, experiment_id)
-    if exp is None or (exp.user_id != user.id and user.role != "admin"):
+    if exp is None or not can_read(exp, user):
         raise HTTPException(404, "experiment not found")
     run = db.scalars(select(models.ExperimentRun).where(models.ExperimentRun.experiment_id == experiment_id)
                      .order_by(models.ExperimentRun.created_at.desc())).first()

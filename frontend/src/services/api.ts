@@ -57,7 +57,7 @@ export const SchemaAPI = {
 }
 
 export const ExperimentAPI = {
-  list: () => data(api.get<Experiment[]>('/api/experiments')),
+  list: (scope: 'mine' | 'team' = 'mine') => data(api.get<Experiment[]>('/api/experiments', { params: { scope } })),
   create: (question: string) => data(api.post<Experiment>('/api/experiments', { question, mode: 'INVESTIGATE' })),
   get: (id: string) => data(api.get<ExperimentDetail>(`/api/experiments/${id}`)),
   run: (id: string) => data(api.post(`/api/experiments/${id}/run`)),
