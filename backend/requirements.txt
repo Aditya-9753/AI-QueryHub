@@ -1,0 +1,23 @@
+# Core backend (Ch 20.2). Heavy RAG deps alag file me: requirements-rag.txt
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg[binary]
+pydantic
+pydantic-settings
+sqlglot
+pandas
+numpy
+scipy
+statsmodels
+redis
+celery
+groq
+google-genai
+httpx
+python-dotenv
+python-jose[cryptography]
+fpdf2
+sentry-sdk[fastapi]
+pytest

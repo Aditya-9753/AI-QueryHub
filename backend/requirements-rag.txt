@@ -1,0 +1,3 @@
+# Schema RAG (ChromaDB + local embeddings). Torch pull karta hai (~2 GB).
+chromadb
+sentence-transformers

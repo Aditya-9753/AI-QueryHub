@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body, #root { min-height: 100%; }
+body { @apply bg-bg font-sans text-ink antialiased; }
+* { scrollbar-color: #2a3a57 transparent; scrollbar-width: thin; }
+::selection { background: rgba(34, 211, 238, .25); }
+
+@layer components {
+  .label { @apply font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-dim; }
+  .input {
+    @apply w-full rounded-md border border-line2 bg-panel2 px-3 py-2 text-sm text-ink placeholder:text-dim
+      focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:opacity-50;
+  }
+  .tbl { @apply min-w-full text-left text-sm; }
+  .tbl thead th { @apply whitespace-nowrap border-b border-line px-3 py-2.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-dim; }
+  .tbl tbody tr { @apply border-b border-line/70 transition-colors hover:bg-white/[0.02]; }
+  .tbl td { @apply px-3 py-2.5 align-top; }
+  .num { @apply font-mono tabular-nums; }
+}
+
+/* React Flow — dark */
+.react-flow { background: #0a111f; }
+.react-flow__node-default { background: #111b2d; color: #e6edf7; border: 1px solid #2a3a57; border-radius: 8px; box-shadow: none; text-align: left; padding: 10px 12px; }
+.react-flow__node-default.selected { box-shadow: 0 0 0 1px #22d3ee, 0 0 24px rgba(34, 211, 238, .18); }
+.react-flow__handle { background: #2a3a57; border: none; }
+.react-flow__edge-path { stroke: #3c8ea3; stroke-width: 1.4; }
+.react-flow__edge-text { fill: #93a4bd; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+.react-flow__edge-textbg { fill: #0d1524; }
+.react-flow__controls { box-shadow: none; }
+.react-flow__controls button { background: #111b2d; border-color: #2a3a57; fill: #93a4bd; }
+.react-flow__controls button:hover { background: #16223a; }
+.recharts-tooltip-cursor { fill: rgba(255, 255, 255, .03); }

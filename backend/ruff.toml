@@ -1,0 +1,16 @@
+line-length = 130
+target-version = "py312"
+extend-exclude = [".venv", "chroma"]
+
+[lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+    "E702",   # HypStatus enum me ek line par multiple members (blueprint Ch 11.4 style)
+    "B008",   # FastAPI Depends() default args
+    "B905",   # zip() strict
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E731", "E501"]
+"app/services/orchestrator/qtrace.py" = ["E741"]  # O = orders matrix (maths notation)
+"../database/**" = ["E402"]

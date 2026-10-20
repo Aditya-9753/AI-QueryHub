@@ -1,0 +1,123 @@
+# =====================================================================
+# AI QueryHub — .gitignore
+# Secrets, local data aur generated files GitHub par nahi jaate.
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# 1. Secrets / credentials  (sabse zaroori)
+# ---------------------------------------------------------------------
+# API keys (GROQ_API_KEY, GEMINI_API_KEY), JWT_SECRET, DB passwords, Supabase keys, Sentry DSN
+.env
+.env.*
+*.env
+!.env.example
+!**/.env.example
+
+# Private keys / certificates / cloud credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.jks
+id_rsa*
+credentials*.json
+service-account*.json
+*-service-account.json
+.supabase/
+.netlify/
+.vercel/
+
+# Claude Code ki local settings (permissions waghera)
+.claude/settings.local.json
+
+# ---------------------------------------------------------------------
+# 2. Local databases (demo orders + users ke password hashes + audit log)
+# ---------------------------------------------------------------------
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# ChromaDB vector store + model caches
+chroma/
+.cache/
+
+# ---------------------------------------------------------------------
+# 3. Generated evaluation data (dobara bana sakte ho)
+#    python -m tests.eval_suite.generator / benchmark / run_ablation / calibrate / run_golden
+# ---------------------------------------------------------------------
+backend/tests/eval_suite/scenarios/*
+backend/tests/eval_suite/ground_truth/*
+backend/tests/eval_suite/results/*
+!backend/tests/eval_suite/scenarios/.gitkeep
+!backend/tests/eval_suite/ground_truth/.gitkeep
+!backend/tests/eval_suite/results/.gitkeep
+
+# Exported experiment reports
+experiment-*.pdf
+experiment-*.json
+
+# ---------------------------------------------------------------------
+# 4. Python
+# ---------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+celerybeat-schedule*
+celerybeat.pid
+
+# ---------------------------------------------------------------------
+# 5. Node / frontend
+# ---------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------------------------------------------------------------------
+# 6. Logs / temp
+# ---------------------------------------------------------------------
+logs/
+*.log
+*.tmp
+*.bak
+*.swp
+
+# ---------------------------------------------------------------------
+# 7. Docker local overrides
+# ---------------------------------------------------------------------
+docker-compose.override.yml
+
+# ---------------------------------------------------------------------
+# 8. OS / editor
+# ---------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.code-workspace

@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_PASSWORD: dev, POSTGRES_DB: queryhub }
+    ports: ["5432:5432"]
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+  chroma:
+    image: chromadb/chroma
+    ports: ["8001:8000"]
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false   # .env na ho tab bhi compose chale (defaults + environment)
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:dev@db:5432/queryhub
+      READONLY_DATABASE_URL: postgresql+psycopg://queryhub_ro:change-me@db:5432/queryhub
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [db, redis, chroma]
+    ports: ["8000:8000"]
+  worker:
+    build: ./backend
+    command: celery -A app.worker worker --loglevel=info
+    env_file:
+      - path: .env
+        required: false   # .env na ho tab bhi compose chale (defaults + environment)
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:dev@db:5432/queryhub
+      READONLY_DATABASE_URL: postgresql+psycopg://queryhub_ro:change-me@db:5432/queryhub
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [redis, db]
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+    ports: ["5173:5173"]
+    depends_on: [backend]
