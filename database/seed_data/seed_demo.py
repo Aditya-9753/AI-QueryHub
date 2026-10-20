@@ -19,6 +19,15 @@ from tests.eval_suite.generator import base_daily, expand_to_orders, plant  # no
 DDL = [
     "DROP TABLE IF EXISTS payments",
     "DROP TABLE IF EXISTS orders",
+    "DROP TABLE IF EXISTS customers",
+    """CREATE TABLE customers (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        city TEXT NOT NULL,
+        segment TEXT NOT NULL,
+        email TEXT,
+        phone TEXT,
+        created_at TIMESTAMP NOT NULL)""",
     """CREATE TABLE orders (
         order_id INTEGER PRIMARY KEY,
         customer_id INTEGER,
@@ -41,6 +50,29 @@ DDL = [
 ]
 
 CITY_SCALE = {"Delhi": 110, "Mumbai": 120, "Pune": 60}
+FIRST = ["Aarav", "Diya", "Kabir", "Isha", "Vihaan", "Ananya", "Arjun", "Meera", "Rohan", "Saanvi", "Kunal", "Tara"]
+LAST = ["Sharma", "Verma", "Iyer", "Khan", "Patel", "Reddy", "Gupta", "Das", "Nair", "Singh"]
+
+
+def build_customers(orders, rng):
+    """Synthetic customers (sab nakli: example.com emails, +91-90000 series phones) — role demo ke liye:
+    viewer ko table hi nahi dikhti, analyst ko email/phone blocked, admin ko sab."""
+    import pandas as pd
+
+    g = orders.groupby("customer_id").agg(city=("city", lambda s: s.mode().iat[0]), spend=("amount", "sum"),
+                                          first=("created_at", "min")).reset_index()
+    hi, lo = g["spend"].quantile(0.9), g["spend"].quantile(0.3)
+    ids = g["customer_id"].to_numpy()
+    first = [FIRST[i % len(FIRST)] for i in ids]
+    last = [LAST[(i // len(FIRST)) % len(LAST)] for i in ids]
+    signup = pd.to_datetime(g["first"]) - pd.to_timedelta(rng.integers(0, 120, len(g)), unit="D")
+    return pd.DataFrame({
+        "id": ids, "name": [f"{a} {b}" for a, b in zip(first, last)], "city": g["city"],
+        "segment": ["vip" if s >= hi else "occasional" if s <= lo else "regular" for s in g["spend"]],
+        "email": [f"{a.lower()}.{b.lower()}{i}@example.com" for a, b, i in zip(first, last, ids)],
+        "phone": [f"+91-90000-{i:05d}" for i in ids],
+        "created_at": signup.dt.strftime("%Y-%m-%d %H:%M:%S"),
+    })
 
 
 def build(target_engine, start: str = "2025-01-01", end: str = "2026-02-28", factor: float = 0.737,
@@ -53,6 +85,7 @@ def build(target_engine, start: str = "2025-01-01", end: str = "2026-02-28", fac
     with target_engine.begin() as conn:
         for stmt in DDL:
             conn.execute(text(stmt))
+    build_customers(orders, rng).to_sql("customers", target_engine, if_exists="append", index=False, chunksize=20000)
     orders.to_sql("orders", target_engine, if_exists="append", index=False, chunksize=20000)
     payments.to_sql("payments", target_engine, if_exists="append", index=False, chunksize=20000)
     return len(orders), len(payments)

@@ -5,8 +5,9 @@
 
 CREATE TABLE IF NOT EXISTS customers (
     id          BIGSERIAL PRIMARY KEY,
+    name        TEXT,
     city        TEXT NOT NULL,
-    segment     TEXT,                       -- new | repeat
+    segment     TEXT,                       -- vip | regular | occasional (lifetime spend)
     email       TEXT,                       -- sensitive (policy layer block karta hai)
     phone       TEXT,                       -- sensitive
     created_at  TIMESTAMPTZ DEFAULT now()

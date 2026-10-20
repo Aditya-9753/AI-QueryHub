@@ -14,6 +14,7 @@ ID_COL = re.compile(r"(^id$|_id$)", re.I)
 TIME_NAME = re.compile(r"(date|day|week|month|year|period|quarter|_at$|^dt$|time)", re.I)
 ISO_DATE = re.compile(r"^\d{4}-\d{2}(-\d{2})?([ T].*)?$")
 MONEY = re.compile(r"(revenue|amount|sales|gmv|value|payment|spend|price|aov|cost|income|profit)", re.I)
+CONTACT = re.compile(r"(^[^@\s]+@[^@\s]+$|^\+?[\d\s-]{8,}$)")
 RATIO = re.compile(r"(rate|pct|percent|ratio|share|avg|average|mean|aov|per_)", re.I)
 
 MAX_INSIGHTS = 6
@@ -56,6 +57,8 @@ def column_roles(columns: list[str], rows: list[list]) -> dict[str, str]:
         vals = [r[i] for r in rows if r[i] is not None]
         if ID_COL.search(c):
             roles[c] = "id"
+        elif not vals:
+            roles[c] = "attribute"            # poora NULL column (jaise role ke liye hidden) — axis nahi
         elif vals and all(isinstance(v, str) and ISO_DATE.match(v) for v in vals):
             roles[c] = "time"
         elif vals and all(_is_num(v) for v in vals):
@@ -209,6 +212,16 @@ def profile_result(columns: list[str], rows: list[list], question: str = "",
     if not rows or not columns:
         return None
     roles = column_roles(columns, rows)
+    dims = [c for c in columns if roles[c] == "dimension"]
+    # email / phone jaise values, ya pehle dimension ke saath 1:1 chalne wale columns = attribute (label ka detail),
+    # alag axis nahi — warna "name × email" jaisa bekaar matrix banta
+    for c in dims[1:]:
+        i, i0 = columns.index(c), columns.index(dims[0])
+        vals = [str(r[i]) for r in rows if r[i] is not None]
+        contact = bool(vals) and all(CONTACT.match(v) for v in vals)
+        one_to_one = len({str(r[i0]) for r in rows}) == len(rows) and len(set(vals)) == len(rows)
+        if contact or one_to_one:
+            roles[c] = "attribute"
     dims = [c for c in columns if roles[c] == "dimension"]
     times = [c for c in columns if roles[c] == "time"]
     measures = [c for c in columns if roles[c] == "measure"]

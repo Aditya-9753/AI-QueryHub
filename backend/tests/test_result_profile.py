@@ -49,3 +49,12 @@ def test_money_format_uses_lakh_crore():
     assert fmt_value(11838782.85, "revenue") == "₹1.18 Cr"
     assert fmt_value(250000, "amount") == "₹2.50 L"
     assert fmt_value(1200, "orders") == "1,200"
+
+
+def test_contact_and_one_to_one_columns_are_attributes_not_a_matrix():
+    rows = [["Diya", "diya@example.com", 64.0], ["Tara", "tara@example.com", 61.0], ["Arjun", "arjun@example.com", 58.0]]
+    p = profile_result(["name", "email", "total_spend"], rows)
+    assert p["roles"]["email"] == "attribute" and p["shape"] == "breakdown" and p["dimension"] == "name"
+    # asli 2-dimension result (repeat hote values) matrix hi rehta hai
+    m = profile_result(["city", "channel", "revenue"], [["Delhi", "app", 5.0], ["Delhi", "web", 3.0], ["Pune", "app", 4.0]])
+    assert m["shape"] == "matrix"

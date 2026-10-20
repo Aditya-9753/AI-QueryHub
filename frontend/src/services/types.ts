@@ -61,7 +61,7 @@ export interface Insight {
 
 /** Deterministic result profile (backend analytics/result_profile.py) — har number result rows se. */
 export interface ResultProfile {
-  roles: Record<string, 'time' | 'dimension' | 'measure' | 'id'>
+  roles: Record<string, 'time' | 'dimension' | 'measure' | 'id' | 'attribute'>
   shape: 'scalar' | 'breakdown' | 'timeseries' | 'matrix' | 'table'
   measure: string | null
   dimension: string | null
@@ -193,6 +193,29 @@ export interface MetricDefinition {
   grain: string
   version: number
 }
+
+/** Admin control center (backend routes/admin.py) */
+export interface AdminOverview {
+  days: number
+  users: { total: number; active: number; by_role: Partial<Record<Role, number>> }
+  queries: {
+    total: number; ok: number; blocked: number; errors: number; manual_sql: number; avg_ms: number | null
+    daily: { date: string; ok: number; blocked: number; errors: number }[]
+    by_role: Record<string, { total: number; ok: number; blocked: number }>
+  }
+  top_users: { id: string; email: string; name: string | null; role: string; total: number; ok: number; blocked: number }[]
+  llm: { model: string; calls: number; tokens_in: number; tokens_out: number; avg_latency_ms: number | null }[]
+  experiments: Record<string, number>
+  firewall_blocks: number
+}
+
+export interface QueryLogItem {
+  id: string; question: string; mode: string; status: string; error: string | null; sql: string | null
+  generated: boolean; row_count: number | null; duration_ms: number | null; llm_calls: number; created_at: string
+  user: { id: string; email: string | null; name: string | null; role: string | null }
+}
+
+export type SystemConfig = Record<string, Record<string, unknown> | string>
 
 export interface AuditEntry {
   id: string

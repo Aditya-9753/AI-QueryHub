@@ -14,7 +14,7 @@ export function useExperiment(id: string | null) {
 }
 
 /** scope: mine = apne runs, team = sabke completed runs (team library). Viewer ke liye hamesha team. */
-export function useExperiments(scope?: 'mine' | 'team') {
+export function useExperiments(scope?: 'mine' | 'team' | 'all') {
   const { can } = useRole()
   const s = !can.investigate ? 'team' : scope ?? 'mine'
   return useQuery({ queryKey: ['experiments', s], queryFn: () => ExperimentAPI.list(s) })

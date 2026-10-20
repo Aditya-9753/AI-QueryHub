@@ -138,18 +138,24 @@ function AskHero() {
   )
 }
 
-function GovernancePanel() {
-  const users = useQuery({ queryKey: ['admin-users'], queryFn: AdminAPI.users })
+/** Sirf admin: poore org ki pulse (last 7 din) — Control center ka shortcut. */
+function OrgPulse() {
+  const { data: o } = useQuery({ queryKey: ['admin-overview', '7'], queryFn: () => AdminAPI.overview(7) })
   const audit = useQuery({ queryKey: ['audit'], queryFn: AdminAPI.audit })
-  const u = users.data ?? []
   const blocked = (audit.data ?? []).filter((a) => a.blocked)
+  const q = o?.queries
   return (
-    <Card label="Governance" title="Workspace health" icon={<Users className="h-4 w-4" />} actions={<Link to="/admin" className="font-mono text-[11px] text-accent">manage →</Link>}>
+    <Card label="Org pulse · 7 days" title="Control center" icon={<Users className="h-4 w-4" />}
+      actions={<Link to="/admin" className="font-mono text-[11px] text-accent">open →</Link>}>
       <div className="grid grid-cols-3 gap-2">
-        {(['admin', 'analyst', 'viewer'] as const).map((r) => <StatTile key={r} label={r} value={u.filter((x) => x.role === r).length} />)}
+        {(['admin', 'analyst', 'viewer'] as const).map((r) => <StatTile key={r} label={r} value={o?.users.by_role[r] ?? 0} />)}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <StatTile label="Org queries" value={q?.total ?? '—'} sub={q ? `${q.ok} ok · ${q.errors} err` : undefined} tone="accent" />
+        <StatTile label="LLM tokens" value={o ? new Intl.NumberFormat('en-IN', { notation: 'compact' }).format(o.llm.reduce((a, m) => a + m.tokens_in + m.tokens_out, 0)) : '—'} />
       </div>
       <div className="mt-3 flex items-center justify-between text-sm">
-        <span className="text-muted">Firewall blocks (audit)</span>
+        <span className="text-muted">Firewall blocks</span>
         <Badge tone={blocked.length ? 'red' : 'green'}>{blocked.length}</Badge>
       </div>
       {blocked.slice(0, 3).map((a) => <p key={a.id} className="mt-1 truncate font-mono text-[11px] text-dim">✕ {a.reason}</p>)}
@@ -164,6 +170,7 @@ export default function Dashboard() {
   const history = useQuery({ queryKey: ['history'], queryFn: () => QueryAPI.history(50) })
   const mine = useExperiments('mine')
   const team = useExperiments('team')
+  const org = useExperiments('all')
   const llm = useQuery({
     queryKey: ['llm-status'],
     queryFn: () => api.get<{ configured: boolean; providers: string[] }>('/api/llm/status').then((r) => r.data),
@@ -232,14 +239,20 @@ export default function Dashboard() {
               <ExperimentTable items={myExps} empty="Abhi koi investigation nahi — “New investigation” se shuru karo." />
             </Card>
           )}
-          <Card label={isViewer ? 'Published by your team' : 'Team library'} title={isViewer ? 'Team investigations' : undefined} pad={false}>
-            <ExperimentTable items={teamExps} showOwner empty="Team ne abhi tak koi investigation complete nahi ki." />
-          </Card>
+          {isAdmin ? (
+            <Card label="Whole organisation · incl. running / failed" title="All investigations" pad={false}>
+              <ExperimentTable items={org.data ?? []} showOwner empty="Org me abhi koi investigation nahi." />
+            </Card>
+          ) : (
+            <Card label={isViewer ? 'Published by your team' : 'Team library'} title={isViewer ? 'Team investigations' : undefined} pad={false}>
+              <ExperimentTable items={teamExps} showOwner empty="Team ne abhi tak koi investigation complete nahi ki." />
+            </Card>
+          )}
           <RecentQuestions />
         </div>
 
         <div className="flex flex-col gap-4">
-          {isAdmin && <GovernancePanel />}
+          {isAdmin && <OrgPulse />}
           <AccessProfile />
           <SavedCard />
           {!isViewer && (

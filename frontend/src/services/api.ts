@@ -1,8 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/useAuthStore'
 import type {
-  AuditEntry, AuthResponse, ConnectionTest, DataSource, Experiment, ExperimentDetail, HistoryItem, Hypothesis, MetricDefinition,
-  QueryRequest, QueryResult, QuestionSpec, SavedQuery, SchemaInfo, User,
+  AdminOverview, AuditEntry, AuthResponse, ConnectionTest, DataSource, Experiment, ExperimentDetail, HistoryItem, Hypothesis, MetricDefinition, QueryLogItem, QueryRequest, QueryResult, QuestionSpec, Role, SavedQuery, SchemaInfo, SystemConfig, User,
 } from './types'
 
 export const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '' })
@@ -57,7 +56,7 @@ export const SchemaAPI = {
 }
 
 export const ExperimentAPI = {
-  list: (scope: 'mine' | 'team' = 'mine') => data(api.get<Experiment[]>('/api/experiments', { params: { scope } })),
+  list: (scope: 'mine' | 'team' | 'all' = 'mine') => data(api.get<Experiment[]>('/api/experiments', { params: { scope } })),
   create: (question: string) => data(api.post<Experiment>('/api/experiments', { question, mode: 'INVESTIGATE' })),
   get: (id: string) => data(api.get<ExperimentDetail>(`/api/experiments/${id}`)),
   run: (id: string) => data(api.post(`/api/experiments/${id}/run`)),
@@ -76,4 +75,8 @@ export const AdminAPI = {
   users: () => data(api.get<User[]>('/api/admin/users')),
   updateUser: (id: string, patch: Partial<Pick<User, 'role' | 'is_active'>>) =>
     data(api.patch<User>(`/api/admin/users/${id}`, patch)),
+  createUser: (body: { email: string; password: string; name?: string; role: Role }) => data(api.post<User>('/api/admin/users', body)),
+  overview: (days = 14) => data(api.get<AdminOverview>('/api/admin/overview', { params: { days } })),
+  queries: (status?: string) => data(api.get<QueryLogItem[]>('/api/admin/queries', { params: { status: status || undefined, limit: 200 } })),
+  system: () => data(api.get<SystemConfig>('/api/admin/system')),
 }

@@ -146,6 +146,24 @@ def firewall_stage(candidate: str, safe: str, role: str, dialect: str, ms: float
     ]}
 
 
+def access_warnings(question: str, engine: Engine, role: str, tables) -> list[str]:
+    """Sawaal me role ke liye chhupi table ya sensitive column ka naam ho to user ko saaf batao (chup-chaap
+    NULL / doosra column dikhane ke bajay)."""
+    words = set(re.findall(r"[a-z_]+", question.lower()))
+    visible = {t.name for t in tables}
+    hidden = [t.name for t in schema_snapshot(engine, "admin")
+              if t.name not in visible and (t.name in words or t.name.rstrip("s") in words)]
+    sensitive = sorted({c.name for t in tables for c in t.columns if c.sensitive and c.name.lower() in words})
+    out = []
+    if hidden:
+        out.append(f"'{', '.join(hidden)}' table aapke role ({role}) ke liye available nahi — "
+                   "jawab sirf allowed tables se bana hai.")
+    if sensitive:
+        out.append(f"{', '.join(sensitive)} sensitive column hai — aapke role ({role}) ke liye hidden rehta hai "
+                   "(admin dekh sakta hai).")
+    return out
+
+
 def dimension_values_for(tables, used: list[str]) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     for t in tables:
@@ -239,4 +257,5 @@ def run_ask(question: str, role: str, llm, engine: Engine, mode: str, sql: str |
     trace.append({"key": "answer", "label": "Grounded answer", "ms": _ms(t), "source": source,
                   "numbers": len(numbers_in(answer))})
     return AskResult(mode, safe, result, answer, source, generated=True, attempts=attempts, llm_calls=calls,
-                     trace=trace, dimension_values=dimension_values_for(tables, tables_in(safe, dialect)))
+                     trace=trace, dimension_values=dimension_values_for(tables, tables_in(safe, dialect)),
+                     warnings=access_warnings(question, engine, role, tables))

@@ -59,10 +59,13 @@ def create_experiment(body: ExperimentIn, user: CurrentUser = Depends(require_ro
 
 @router.get("", response_model=list[ExperimentOut])
 def list_experiments(scope: str = "mine", user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    """scope=mine: apne runs · scope=team: sabke completed runs (viewer ke liye hamesha team)."""
+    """scope=mine: apne runs · team: sabke completed runs (viewer ke liye hamesha team) · all: admin — poora org,
+    failed / running bhi."""
     q = (select(models.Experiment, models.User.name, models.User.email)
          .join(models.User, models.User.id == models.Experiment.user_id, isouter=True))
-    if scope == "team" or user.role not in ANALYST_ROLES:
+    if scope == "all" and user.role == "admin":
+        pass
+    elif scope == "team" or user.role not in ANALYST_ROLES:
         q = q.where(models.Experiment.status == "completed")
     else:
         q = q.where(models.Experiment.user_id == user.id)

@@ -153,10 +153,15 @@ export default function QueryWorkspace() {
             <>
               {result.warnings.length > 0 && (
                 <Card className="border-warn/40 bg-warn/5">
-                  {result.warnings.map((w) => (
-                    <p key={w} className="flex items-start gap-1.5 text-sm text-warn"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{w}</p>
-                  ))}
-                  {can.investigate ? (
+                  {result.warnings.map((w) => {
+                    const access = w.includes('role (')
+                    return (
+                      <p key={w} className={`flex items-start gap-1.5 text-sm ${access ? 'text-muted' : 'text-warn'}`}>
+                        {access ? <Lock className="mt-0.5 h-4 w-4 shrink-0 text-warn" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}{w}
+                      </p>
+                    )
+                  })}
+                  {!result.warnings.some((w) => w.includes('Investigation')) ? null : can.investigate ? (
                     <Button variant="secondary" className="mt-3" onClick={() => investigate.mutate()} disabled={investigate.isPending}>
                       <FlaskConical className="h-4 w-4" />Investigate karo (Q-TRACE+)
                     </Button>

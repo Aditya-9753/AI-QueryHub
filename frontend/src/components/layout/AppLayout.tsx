@@ -40,7 +40,7 @@ const SECTIONS: { title: string; adminOnly?: boolean; items: Item[] }[] = [
     ],
   },
   { title: 'Quality', items: [{ to: '/eval', label: 'Eval dashboard', icon: Target }] },
-  { title: 'Governance', adminOnly: true, items: [{ to: '/admin', label: 'Audit trail & RBAC', icon: ShieldCheck }] },
+  { title: 'Governance', adminOnly: true, items: [{ to: '/admin', label: 'Control center', icon: ShieldCheck }] },
 ]
 
 const LOCK_TITLE = 'Analyst / admin ke liye — admin se role badalne ko kaho'

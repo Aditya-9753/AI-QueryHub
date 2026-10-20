@@ -25,10 +25,10 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
   admin: {
     label: 'Admin',
     persona: 'Workspace owner',
-    desc: 'Poora control: analysis + users, connections, semantic layer, audit log',
+    desc: 'Poora control: analysis + org-wide monitoring, users, connections, semantic layer, audit',
     tone: 'amber',
-    can: ['Analyst ka sab kuch', 'Users ke roles badalna', 'Database connections jodna',
-      'Metric definitions edit karna', 'Audit log + firewall blocks', 'Sensitive columns'],
+    can: ['Analyst ka sab kuch', 'Poore org ki queries, usage + LLM cost', 'Team accounts banana + roles badalna',
+      'Sensitive columns (customers email / phone)', 'Database connections + metric definitions', 'Audit log + system config'],
     cannot: [],
     caps: { manualSql: true, investigate: true, challenge: true, replay: true, allTables: true, governance: true },
   },

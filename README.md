@@ -125,7 +125,7 @@ python -m venv .venv
 source .venv/bin/activate                # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 pip install -r requirements-rag.txt      # optional: ChromaDB + sentence-transformers (~2 GB)
-python ../database/seed_data/seed_demo.py   # ~120k demo orders (Delhi / Mumbai / Pune, Jan 2025 → Feb 2026)
+python ../database/seed_data/seed_demo.py   # ~120k demo orders + 5k synthetic customers (Delhi / Mumbai / Pune, Jan 2025 → Feb 2026)
 uvicorn app.main:app --reload            # API docs: http://localhost:8000/docs
 
 # frontend (new terminal)
@@ -162,18 +162,24 @@ All settings are environment variables (root `.env` or `backend/.env`). See [`.e
 | Run investigations, challenge findings, re-derive | ✓ | ✓ (own runs) | – |
 | Exact replay (verify checksums) | ✓ | ✓ | – |
 | Read team investigations + evidence, export JSON / PDF | ✓ | ✓ | ✓ (completed runs) |
+| `customers` table | ✓ | ✓ (email / phone blocked) | – |
 | Sensitive columns (email, phone) | ✓ | – | – |
-| Users, connections, metric definitions, audit log | ✓ | – | – |
+| Org-wide usage, every user's query log, LLM token usage | ✓ | – | – |
+| Create accounts, change roles, deactivate users | ✓ | – | – |
+| Connections, metric definitions, audit log, system config | ✓ | – | – |
 
-Every rule is enforced in the backend (`require_role`, ownership checks, SQL policy layer). Each role also gets its own
+Every rule is enforced in the backend (`require_role`, ownership checks, SQL policy layer). If a question touches a table or column
+that the role cannot see, the answer says so instead of silently returning less. Each role also gets its own
 Workbench: a reader view with an ask box and team feed for viewers, an investigator console for analysts, and a
-governance panel for admins. Locked tools are shown with a lock icon, so it is clear what each role can do.
+governance panel for admins. The admin **Control center** has five tabs: Overview (queries per day, block rate, usage by role, top
+users, LLM tokens per model), Users (create account, role, active), Query log (every user's question + SQL), Audit,
+and System (effective config, never secrets). Locked tools are shown with a lock icon, so it is clear what each role can do.
 
 ## Tests and evaluation
 
 ```bash
 cd backend
-pytest -q -p no:warnings                                  # 109 tests (hermetic: no real LLM calls)
+pytest -q -p no:warnings                                  # 114 tests (hermetic: no real LLM calls)
 python -m tests.eval_suite.worked_example                 # blueprint Ch 10 worked example, live pipeline
 python -m tests.eval_suite.benchmark --scenarios 200      # planted-cause benchmark
 python -m tests.eval_suite.run_ablation --scenarios 60
