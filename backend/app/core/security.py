@@ -115,8 +115,19 @@ def verify_supabase_token(token: str) -> dict:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid Supabase token") from e
 
 
+def initial_role(email: str, has_other_users: bool) -> str:
+    """Naye account ka role: ADMIN_EMAILS me ho to admin; list set ho to baaki DEFAULT_SIGNUP_ROLE;
+    list khaali ho to purana rule (pehla user admin)."""
+    s = get_settings()
+    if email.lower() in s.admin_emails:
+        return "admin"
+    if s.admin_emails or has_other_users:
+        return s.default_signup_role
+    return "admin"
+
+
 def user_from_supabase(db: Session, claims: dict) -> models.User:
-    """Supabase user ko local users table se map (email se); pehla user admin, baaki analyst."""
+    """Supabase user ko local users table se map (email se); role initial_role() se."""
     from sqlalchemy import func, select
 
     email = str(claims.get("email", "")).lower()
@@ -127,7 +138,7 @@ def user_from_supabase(db: Session, claims: dict) -> models.User:
         others = db.scalar(select(func.count()).select_from(models.User).where(models.User.id != DEV_USER_ID))
         meta = claims.get("user_metadata") or {}
         user = models.User(email=email, name=meta.get("full_name") or meta.get("name"),
-                           role="analyst" if others else "admin")
+                           role=initial_role(email, bool(others)))
         db.add(user)
         db.commit()
     return user

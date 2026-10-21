@@ -10,6 +10,7 @@ from app.core.security import (
     create_access_token,
     get_current_user,
     hash_password,
+    initial_role,
     verify_password,
 )
 from app.db.session import get_db
@@ -32,7 +33,7 @@ def signup(body: SignupIn, db: Session = Depends(get_db)):
     # Pehla real user admin banta hai; baaki analyst (admin baad me role badal sakta hai)
     has_users = db.scalar(select(func.count()).select_from(models.User)
                           .where(models.User.id != DEV_USER_ID)) > 0
-    user = models.User(email=email, name=body.name, role="analyst" if has_users else "admin",
+    user = models.User(email=email, name=body.name, role=initial_role(email, has_users),
                        password_hash=hash_password(body.password))
     db.add(user)
     db.commit()

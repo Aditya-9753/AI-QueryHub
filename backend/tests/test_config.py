@@ -14,3 +14,24 @@ def test_cors_origins_comma_or_json(monkeypatch):
     assert Settings().cors_origins == ["https://web.onrender.com", "http://localhost:5173"]
     monkeypatch.setenv("CORS_ORIGINS", '["https://a.example"]')
     assert Settings().cors_origins == ["https://a.example"]
+
+
+def test_admin_emails_and_default_signup_role(monkeypatch):
+    from app.core.config import get_settings
+    from app.core.security import initial_role
+
+    monkeypatch.setenv("ADMIN_EMAILS", "Boss@Example.com, ops@example.com")
+    monkeypatch.setenv("DEFAULT_SIGNUP_ROLE", "viewer")
+    get_settings.cache_clear()
+    try:
+        assert get_settings().admin_emails == ["boss@example.com", "ops@example.com"]
+        assert initial_role("boss@example.com", has_other_users=True) == "admin"
+        # list set ho to "pehla signup admin" band — public deploy par koi bhi admin nahi ban sakta
+        assert initial_role("stranger@example.com", has_other_users=False) == "viewer"
+    finally:
+        get_settings.cache_clear()
+    monkeypatch.delenv("ADMIN_EMAILS")
+    monkeypatch.delenv("DEFAULT_SIGNUP_ROLE")
+    get_settings.cache_clear()
+    assert initial_role("first@example.com", has_other_users=False) == "admin"     # purana rule (local dev)
+    assert initial_role("second@example.com", has_other_users=True) == "analyst"

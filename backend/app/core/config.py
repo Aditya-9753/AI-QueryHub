@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 720
     auth_disabled: bool = False              # sirf local testing: bina token ke "dev" admin user
+    # Signup roles. ADMIN_EMAILS set ho to sirf ye emails admin bante hain (public deploy par "pehla signup admin"
+    # wala rule band); baaki sabko DEFAULT_SIGNUP_ROLE. Khaali ho to purana rule: pehla user admin, baaki default.
+    admin_emails: Annotated[list[str], NoDecode] = []
+    default_signup_role: str = "analyst"
     # Supabase Auth (optional): set ho to Supabase ke access tokens bhi accept hote hain
     supabase_url: str = ""                   # https://<project>.supabase.co  (ES256/RS256 -> JWKS)
     supabase_jwt_secret: str = ""            # legacy HS256 projects ke liye
@@ -74,6 +78,20 @@ class Settings(BaseSettings):
         for prefix in ("postgres://", "postgresql://"):
             if v.startswith(prefix):
                 return "postgresql+psycopg://" + v[len(prefix):]
+        return v
+
+    @field_validator("admin_emails", mode="before")
+    @classmethod
+    def _split_emails(cls, v: object) -> object:
+        if isinstance(v, str):
+            return [e.strip().lower() for e in v.split(",") if e.strip()]
+        return [str(e).strip().lower() for e in v] if isinstance(v, list) else v
+
+    @field_validator("default_signup_role")
+    @classmethod
+    def _valid_role(cls, v: str) -> str:
+        if v not in ("admin", "analyst", "viewer"):
+            raise ValueError("DEFAULT_SIGNUP_ROLE must be admin | analyst | viewer")
         return v
 
     @field_validator("cors_origins", mode="before")
