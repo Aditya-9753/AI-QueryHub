@@ -38,10 +38,14 @@ services:
         value: sqlite:///./demo.db
       - key: JWT_SECRET
         generateValue: true
+      - key: DEFAULT_SIGNUP_ROLE     # public URL: naye signups viewer (LLM quota bachta hai)
+        value: viewer
       # --- set in the Render dashboard (prompted on first Blueprint sync) ---
       - key: DATABASE_URL            # Supabase "Session pooler" URI, or sqlite:///./queryhub.db for a throwaway demo
         sync: false
       - key: CORS_ORIGINS            # frontend URL, e.g. https://queryhub-web.onrender.com
+        sync: false
+      - key: ADMIN_EMAILS            # sirf ye email(s) admin bante hain — "pehla signup admin" rule band
         sync: false
       - key: GROQ_API_KEY
         sync: false

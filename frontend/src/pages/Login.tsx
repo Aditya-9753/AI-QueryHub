@@ -91,7 +91,7 @@ export default function Login() {
             <div className="label">Q-TRACE+ evidence engine</div>
           </div>
           <h2 className="text-xl font-semibold">{tab === 'login' ? 'Welcome back' : 'Account banao'}</h2>
-          <p className="mt-1 text-sm text-muted">{supabase ? 'Supabase Auth' : 'Local auth'} · pehla account <b className="text-ink">admin</b> banta hai</p>
+          <p className="mt-1 text-sm text-muted">{tab === 'login' ? 'Apne account se sign in karo' : 'Naya account banao — role admin assign karta hai'}</p>
           <div className="mt-6 grid grid-cols-2 rounded-md border border-line bg-panel2 p-1">
             {(['login', 'signup'] as const).map((t) => (
               <button key={t} type="button" onClick={() => { setTab(t); submit.reset() }}

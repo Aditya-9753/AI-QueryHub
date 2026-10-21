@@ -61,6 +61,22 @@ lekin INVESTIGATE deterministic mode me chalta hai.
 5. Site kholo → **Sign up**. Pehla account **admin** banta hai, baaki sab analyst. Roles baad me
    *Audit trail & RBAC* page se badal sakte ho.
 
+### Signup roles (public URL ke liye zaroori)
+
+| Variable | Value | Kyun |
+|---|---|---|
+| `ADMIN_EMAILS` | aapka email (comma se kai) | Sirf ye accounts admin bante hain. Iske bina, DB reset ke baad koi bhi pehla signup admin ban jaata |
+| `DEFAULT_SIGNUP_ROLE` | `viewer` | Public visitors sirf plain-language sawaal pooch sakte hain, investigations nahi (aapka LLM quota bachta hai) |
+
+## Alternative: Docker web service (bina Blueprint)
+
+Agar Render par service pehle se **Docker runtime** se bani hai, to repo root ka [`Dockerfile`](../Dockerfile) use hota hai:
+core requirements, build par demo data `backend/demo.db` me seed, aur `uvicorn` `$PORT` par. Service settings:
+Dockerfile path `./Dockerfile`, context `.`, health check `/health`. Env vars upar wale hi hain, bas
+`READONLY_DATABASE_URL` image me pehle se set hai. Frontend ke liye alag **Static Site** banao:
+root `frontend`, build `npm ci && npm run build`, publish `dist`, rewrite `/*` → `/index.html`,
+env `VITE_API_URL=https://<backend>.onrender.com`.
+
 ## 3. Check
 
 - `https://queryhub-api.onrender.com/health` → `{"status": "ok", ...}`
