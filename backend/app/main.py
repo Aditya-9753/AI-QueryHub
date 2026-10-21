@@ -5,13 +5,13 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app import models
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.security import DEV_USER_ID
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, engine
 from app.services.rag.semantic_layer import SemanticLayer
 
 log = logging.getLogger("queryhub")
@@ -24,6 +24,21 @@ def run_migrations() -> None:
     from alembic.config import Config
 
     command.upgrade(Config(str(ALEMBIC_INI)), "head")
+
+
+def harden_postgres() -> None:
+    """Supabase `public` schema ki tables PostgREST (anon key) se bhi pahunchti hain. RLS on + koi policy nahi =
+    us API se kuch nahi dikhta; backend table owner ke roop me connect hota hai, isliye uspe asar nahi. Idempotent."""
+    if engine.dialect.name != "postgresql":
+        return
+    with engine.begin() as conn:
+        tables = conn.execute(text(
+            "select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace "
+            "where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity")).scalars().all()
+        for t in tables:
+            conn.execute(text(f'alter table public."{t}" enable row level security'))
+    if tables:
+        log.info("RLS enabled on %d public tables", len(tables))
 
 
 def bootstrap() -> None:
@@ -48,6 +63,10 @@ async def lifespan(_: FastAPI):
             run_migrations()
         except Exception as e:
             log.error("alembic upgrade failed: %s", e)
+    try:
+        harden_postgres()
+    except Exception as e:
+        log.warning("RLS hardening skipped: %s", e)
     try:
         bootstrap()
     except Exception as e:
