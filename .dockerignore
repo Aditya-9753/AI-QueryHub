@@ -1,0 +1,21 @@
+# Keep secrets, local databases and heavy local folders out of the image build context
+**/.env
+**/.env.*
+!**/.env.example
+**/*.db
+**/*.sqlite*
+**/.venv
+**/venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/chroma
+**/.cache
+frontend
+docs
+.git
+.github
+backend/tests/eval_suite/results/*
+backend/tests/eval_suite/scenarios/*
+backend/tests/eval_suite/ground_truth/*
